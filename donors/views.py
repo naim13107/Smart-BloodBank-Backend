@@ -7,6 +7,7 @@ import datetime
 from .models import DonorProfile
 from .serializers import DonorProfileSerializer
 from .permissions import Editpermission
+from api.pagination import DefaultPagination
 
 class DonorViewSet(viewsets.ModelViewSet):
     
@@ -16,6 +17,7 @@ class DonorViewSet(viewsets.ModelViewSet):
     filterset_fields = ['blood_group','is_available'] 
     search_fields = ['user__address', 'blood_group'] 
     permission_classes = [Editpermission]
+    pagination_class = DefaultPagination
 
     def validate_future_date(self, date_str):
         if date_str:

@@ -9,11 +9,12 @@ from rest_framework.exceptions import NotAuthenticated
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
+from api.pagination import DefaultPagination
 
 class BloodRequestViewSet(viewsets.ModelViewSet):
     serializer_class = BloodRequestSerializer
     queryset = BloodRequest.objects.all()
-    
+    pagination_class = DefaultPagination
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['blood_group']
     search_fields = ['hospital_name', 'blood_group']
@@ -131,6 +132,7 @@ class BloodRequestViewSet(viewsets.ModelViewSet):
 class MyRequestsViewSet(viewsets.ModelViewSet):
     serializer_class = BloodRequestSerializer
     permission_classes = [IsAuthenticated] 
+    pagination_class = DefaultPagination
 
     def get_queryset(self):
         return BloodRequest.objects.filter(recipient=self.request.user)
