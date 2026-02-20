@@ -51,6 +51,8 @@ INSTALLED_APPS = [
     'accounts',
     'donors',
     'requests',
+    'api',
+    'dashboard'
     
 ]
 
