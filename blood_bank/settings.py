@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'django.contrib.auth',
     'rest_framework',
     'django_filters',
+    "corsheaders",
     'djoser',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -57,6 +58,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     'django.middleware.security.SecurityMiddleware',
     "whitenoise.middleware.WhiteNoiseMiddleware",
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -85,6 +87,10 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'blood_bank.wsgi.app'
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:5173',
+    "http://127.0.0.1:5173",
+]
 
 
 # Database
