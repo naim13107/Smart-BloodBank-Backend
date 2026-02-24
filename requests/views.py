@@ -17,7 +17,7 @@ class BloodRequestViewSet(viewsets.ModelViewSet):
     pagination_class = DefaultPagination
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['blood_group']
-    search_fields = ['hospital_name', 'blood_group']
+    search_fields = ['hospital_name', 'blood_group','bags_needed']
     ordering_fields = ['created_at', 'donation_date'] 
 
     def get_queryset(self):
