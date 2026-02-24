@@ -170,6 +170,8 @@ SIMPLE_JWT = {
    "ACCESS_TOKEN_LIFETIME": timedelta(days=5),
 }
 
+DOMAIN = 'localhost:5173' 
+SITE_NAME = 'BloodLink'
 
 DJOSER = {
     'PASSWORD_RESET_CONFIRM_URL': 'password/reset/confirm/{uid}/{token}',
