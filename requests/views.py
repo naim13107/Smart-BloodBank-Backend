@@ -83,7 +83,7 @@ class BloodRequestViewSet(viewsets.ModelViewSet):
             return Response({"error": "You cannot donate to your own request."}, status=status.HTTP_400_BAD_REQUEST)
 
         profile.is_available = False
-        profile.last_donation_date = timezone.now().date()
+        profile.last_donation_date = blood_request.donation_date
         profile.save()
 
         blood_request.donors.add(user)

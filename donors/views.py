@@ -19,17 +19,21 @@ class DonorViewSet(viewsets.ModelViewSet):
     permission_classes = [Editpermission]
     pagination_class = DefaultPagination
 
-    def validate_future_date(self, date_str):
-        if date_str:
+    def validate_future_date(self, date_val):
+    # Check if value exists and is not an empty string
+        if date_val and date_val != "":
             try:
-                if isinstance(date_str, str):
-                    date_obj = datetime.datetime.strptime(date_str, '%Y-%m-%d').date()
+            # If it's already a date object (parsed by the serializer), use it directly
+                if isinstance(date_val, (datetime.date, datetime.datetime)):
+                    date_obj = date_val if isinstance(date_val, datetime.date) else date_val.date()
                 else:
-                    date_obj = date_str
-                
+                # Otherwise, parse the string
+                    date_obj = datetime.datetime.strptime(str(date_val), '%Y-%m-%d').date()
+            
                 if date_obj > timezone.now().date():
                     raise ValidationError({"last_donation_date": "The date cannot be in the future!"})
             except (ValueError, TypeError):
+            
                 pass
 
     def perform_create(self, serializer):
