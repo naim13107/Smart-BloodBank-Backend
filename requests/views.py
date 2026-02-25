@@ -59,6 +59,14 @@ class BloodRequestViewSet(viewsets.ModelViewSet):
 
         profile = user.donor_profile
         
+        # --- NEW CHECK: Verify Blood Group Match ---
+        if profile.blood_group != blood_request.blood_group:
+            return Response(
+                {"error": f"Blood type mismatch. This request needs {blood_request.blood_group}, but you are registered as {profile.blood_group}."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        # -------------------------------------------
+        
         if not profile.is_available:
             return Response(
                 {"error": "You are currently ineligible to donate. Please check your dashboard for your next available date."},
