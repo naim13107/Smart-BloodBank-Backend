@@ -9,19 +9,21 @@ from requests.serializers import BloodRequestSerializer
 class UserDashboardViewSet(viewsets.ViewSet):
     """
     For the logged-in user.
-
     """
     permission_classes = [permissions.IsAuthenticated]
 
     def list(self, request):
         user = request.user
         
-        # 1. User Details
+        # 1. User Details (UPDATED with new fields)
         user_info = {
             "id": user.id,
-            "username": user.username,
             "email": user.email,
-            "date_joined": user.date_joined.strftime('%Y-%m-%d'),
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "address": user.address,
+            "phone_number": user.phone_number,
+            "date_joined": user.date_joined.strftime('%Y-%m-%d') if user.date_joined else None,
         }
 
         # 2. Donor Profile Details
