@@ -53,7 +53,7 @@ class BloodRequestViewSet(viewsets.ModelViewSet):
 
         if not hasattr(user, 'donor_profile'):
             return Response(
-                {"error": "You must create a donor profile before you can donate blood."},
+                {"error": "You must create a donor profile before you can donate blood , go to Dashboard and save you donor profile."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
