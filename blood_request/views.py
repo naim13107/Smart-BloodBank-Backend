@@ -152,66 +152,113 @@ class MyRequestsViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(recipient=self.request.user)
 
+# import uuid
+
+# @api_view(['POST'])
+# def initiate_payment(request):
+#     try:
+#         settings = {
+#             'store_id': 'bondh69a2b4734c5ba',       
+#             'store_pass': 'bondh69a2b4734c5ba@ssl',     
+#             'issandbox': True
+#         }
+#         sslcz = SSLCOMMERZ(settings)
+
+#         post_body = {
+#             'total_amount': 100.26,
+#             'currency': "BDT",
+#             'tran_id': str(uuid.uuid4()),
+#             'success_url': "http://127.0.0.1:8000/api/v1/payment/success/",
+#             'fail_url': "http://127.0.0.1:8000/api/v1/payment/fail/",
+#             'cancel_url': "http://127.0.0.1:8000/api/v1/payment/cancel/",
+#             'emi_option': 0,
+#             'cus_name': "test",
+#             'cus_email': "test@test.com",
+#             'cus_phone': "01700000000",
+#             'cus_add1': "customer address",
+#             'cus_city': "Dhaka",
+#             'cus_country': "Bangladesh",
+#             'shipping_method': "NO",
+#             'multi_card_name': "",
+#             'num_of_item': 1,
+#             'product_name': "Test",
+#             'product_category': "Test Category",
+#             'product_profile': "general",
+#         }
+
+#         response = sslcz.createSession(post_body)
+#         print("SSLCOMMERZ Response:", response)
+
+#         if response is None:
+#             return Response(
+#                 {"error": "SSLCommerz returned no response. Check your store credentials."},
+#                 status=status.HTTP_502_BAD_GATEWAY
+#             )
+
+#         if response.get('status') == 'SUCCESS':
+#             return Response({
+#                 'payment_url': response['GatewayPageURL'],
+#                 'status': 'success'
+#             })
+
+#         return Response({
+#             'error': 'Payment session failed',
+#             'details': response
+#         }, status=status.HTTP_400_BAD_REQUEST)
+
+#     except Exception as e:
+#         print("ERROR:", str(e))
+#         return Response(
+#             {"error": str(e)},
+#             status=status.HTTP_500_INTERNAL_SERVER_ERROR
+#         )
+
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from sslcommerz_lib import SSLCOMMERZ
 import uuid
 
 @api_view(['POST'])
 def initiate_payment(request):
-    try:
-        settings = {
-            'store_id': 'bondh69a2b4734c5ba',       # Use sandbox test credentials
-            'store_pass': 'bondh69a2b4734c5ba@ssl',      # Use sandbox test credentials
-            'issandbox': True
-        }
-        sslcz = SSLCOMMERZ(settings)
+    amount = request.data.get('amount')
+    settings = { 
+        'store_id': 'bondh69a2b4734c5ba', 
+        'store_pass': 'bondh69a2b4734c5ba@ssl', 
+        'issandbox': True 
+    }
 
-        post_body = {
-            'total_amount': 100.26,
-            'currency': "BDT",
-            'tran_id': str(uuid.uuid4()),
-            'success_url': "http://127.0.0.1:8000/api/v1/payment/success/",
-            'fail_url': "http://127.0.0.1:8000/api/v1/payment/fail/",
-            'cancel_url': "http://127.0.0.1:8000/api/v1/payment/cancel/",
-            'emi_option': 0,
-            'cus_name': "test",
-            'cus_email': "test@test.com",
-            'cus_phone': "01700000000",
-            'cus_add1': "customer address",
-            'cus_city': "Dhaka",
-            'cus_country': "Bangladesh",
-            'shipping_method': "NO",
-            'multi_card_name': "",
-            'num_of_item': 1,
-            'product_name': "Test",
-            'product_category': "Test Category",
-            'product_profile': "general",
-        }
+    sslcz = SSLCOMMERZ(settings)
+    
+    post_body = {}
+    post_body['total_amount'] = amount
+    post_body['currency'] = "BDT"
+    post_body['tran_id'] = str(uuid.uuid4())
+    post_body['success_url'] = "http://localhost:5173/dashboard/payment/success/"
+    post_body['fail_url'] = "http://localhost:5173/dashboard/payment/fail/"
+    post_body['cancel_url'] = "http://localhost:5173/dashboard/payment/transactions/"
+    post_body['emi_option'] = 0
+    post_body['cus_name'] = "test"
+    post_body['cus_email'] = "test@test.com"
+    post_body['cus_phone'] = "01700000000"
+    post_body['cus_add1'] = "customer address"
+    post_body['cus_city'] = "Dhaka"
+    post_body['cus_country'] = "Bangladesh"
+    post_body['shipping_method'] = "NO"
+    post_body['multi_card_name'] = ""
+    post_body['num_of_item'] = 1
+    post_body['product_name'] = "Test"
+    post_body['product_category'] = "Test Category"
+    post_body['product_profile'] = "general"
 
-        response = sslcz.createSession(post_body)
-        print("SSLCOMMERZ Response:", response)
+    response = sslcz.createSession(post_body)
+    print(response)
 
-        if response is None:
-            return Response(
-                {"error": "SSLCommerz returned no response. Check your store credentials."},
-                status=status.HTTP_502_BAD_GATEWAY
-            )
-
-        if response.get('status') == 'SUCCESS':
-            return Response({
-                'payment_url': response['GatewayPageURL'],
-                'status': 'success'
-            })
-
-        return Response({
-            'error': 'Payment session failed',
-            'details': response
-        }, status=status.HTTP_400_BAD_REQUEST)
-
-    except Exception as e:
-        print("ERROR:", str(e))
-        return Response(
-            {"error": str(e)},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
+    # We must check if 'status' is 'SUCCESS' before accessing GatewayPageURL
+    if response and response.get('status') == 'SUCCESS':
+        return Response(response['GatewayPageURL'])
+    
+    # If it fails, return the error message so you aren't stuck with a 500 error
+    return Response({"error": "Failed to create session", "details": response}, status=400)
 
 
 @api_view(['GET'])
