@@ -14,6 +14,7 @@ from rest_framework.decorators import api_view,permission_classes
 from sslcommerz_lib import SSLCOMMERZ 
 from donors.models import DonationTransaction 
 from django.shortcuts import redirect
+from django.conf import settings as main_settings
 
 
 class BloodRequestViewSet(viewsets.ModelViewSet):
@@ -153,66 +154,6 @@ class MyRequestsViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(recipient=self.request.user)
 
-# import uuid
-
-# @api_view(['POST'])
-# def initiate_payment(request):
-#     try:
-#         settings = {
-#             'store_id': 'bondh69a2b4734c5ba',       
-#             'store_pass': 'bondh69a2b4734c5ba@ssl',     
-#             'issandbox': True
-#         }
-#         sslcz = SSLCOMMERZ(settings)
-
-#         post_body = {
-#             'total_amount': 100.26,
-#             'currency': "BDT",
-#             'tran_id': str(uuid.uuid4()),
-#             'success_url': "http://127.0.0.1:8000/api/v1/payment/success/",
-#             'fail_url': "http://127.0.0.1:8000/api/v1/payment/fail/",
-#             'cancel_url': "http://127.0.0.1:8000/api/v1/payment/cancel/",
-#             'emi_option': 0,
-#             'cus_name': "test",
-#             'cus_email': "test@test.com",
-#             'cus_phone': "01700000000",
-#             'cus_add1': "customer address",
-#             'cus_city': "Dhaka",
-#             'cus_country': "Bangladesh",
-#             'shipping_method': "NO",
-#             'multi_card_name': "",
-#             'num_of_item': 1,
-#             'product_name': "Test",
-#             'product_category': "Test Category",
-#             'product_profile': "general",
-#         }
-
-#         response = sslcz.createSession(post_body)
-#         print("SSLCOMMERZ Response:", response)
-
-#         if response is None:
-#             return Response(
-#                 {"error": "SSLCommerz returned no response. Check your store credentials."},
-#                 status=status.HTTP_502_BAD_GATEWAY
-#             )
-
-#         if response.get('status') == 'SUCCESS':
-#             return Response({
-#                 'payment_url': response['GatewayPageURL'],
-#                 'status': 'success'
-#             })
-
-#         return Response({
-#             'error': 'Payment session failed',
-#             'details': response
-#         }, status=status.HTTP_400_BAD_REQUEST)
-
-#     except Exception as e:
-#         print("ERROR:", str(e))
-#         return Response(
-#             {"error": str(e)},
-#             status=status.HTTP_500_INTERNAL_SERVER_ERROR
-#         )
 
 
 
@@ -242,9 +183,9 @@ def initiate_payment(request):
     post_body['total_amount'] = float(amount)
     post_body['currency'] = "BDT"
     post_body['tran_id'] = str(transaction.tran_id) 
-    post_body['success_url'] = "http://localhost:5173/dashboard/payment/success/"
-    post_body['fail_url'] = "http://localhost:5173/dashboard/payment/fail/"
-    post_body['cancel_url'] = "http://localhost:5173/dashboard/payment/transactions/"
+    post_body['success_url'] = f"{main_settings.BACKEND_URL}/api/v1/payment/success"
+    post_body['fail_url'] = f"{main_settings.BACKEND_URL}/api/v1/payment/fail"
+    post_body['cancel_url'] = f"{main_settings.BACKEND_URL}/api/v1/payment/cancel"
     post_body['emi_option'] = 0
     post_body['cus_name'] = f"{user.first_name} {user.last_name}".strip() or "Donor"
     post_body['cus_email'] = user.email 
@@ -303,8 +244,8 @@ def payment_success(request):
         transaction.save()
     except DonationTransaction.DoesNotExist:
         print(f"Transaction {tran_id} not found")
-
-    return redirect("http://localhost:5173/dashboard/payment/success/")
+    
+    return redirect(f"{main_settings.FRONTEND_URL}/dashboard/payment/success")
 
 
 @api_view(['POST'])
@@ -318,11 +259,11 @@ def payment_fail(request):
     except DonationTransaction.DoesNotExist:
         pass
         
-    return redirect("http://localhost:5173/dashboard/payment/fail/")
+    return redirect(f"{main_settings.FRONTEND_URL}/dashboard/payment/fail")
 
 
 @api_view(['POST'])
 def payment_cancel(request):
-    return redirect("http://localhost:5173/dashboard/payment/history/")
+    return redirect(f"{main_settings.FRONTEND_URL}/dashboard/payment/cancel")
      
 
