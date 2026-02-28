@@ -2,3 +2,4 @@ blood-baank-env/
 __pycache__/
 .env
 db.sqlite3
+blood-env/

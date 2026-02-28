@@ -10,6 +10,8 @@ from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
 from api.pagination import DefaultPagination
+from rest_framework.decorators import api_view
+from sslcommerz_lib import SSLCOMMERZ 
 
 class BloodRequestViewSet(viewsets.ModelViewSet):
     serializer_class = BloodRequestSerializer
@@ -147,3 +149,45 @@ class MyRequestsViewSet(viewsets.ModelViewSet):
         
     def perform_create(self, serializer):
         serializer.save(recipient=self.request.user)
+
+
+@api_view(['POST'])
+def initiate_payment(request):
+    user = request.user
+    amount = request.data.get("amount")
+    
+
+    settings = { 'store_id': 'bondh69a2122655891', 'store_pass': 'bondh69a2122655891@ssl','issandbox': True }
+    sslcz = SSLCOMMERZ(settings)
+    post_body = {}
+    post_body['total_amount'] = amount
+    post_body['currency'] = "BDT"
+    post_body['tran_id'] = "12345"
+    post_body['success_url'] = "http://localhost:5173/dashboard/payment/success/"
+    post_body['fail_url'] = "http://localhost:5173/dashboard/payment/fail/"
+    post_body['cancel_url'] = "http://localhost:5173/dashboard/payment/transactions/"
+    post_body['emi_option'] = 0
+    post_body['cus_name'] = f"{user.first_name} {user.last_name}"
+    post_body['cus_email'] = f"{user.email}"
+    post_body['cus_phone'] = f"{user.phone_number}"
+    post_body['cus_add1'] = f"{user.address}"
+    post_body['cus_city'] = "Dhaka"
+    post_body['cus_country'] = "Bangladesh"
+    post_body['shipping_method'] = "NO"
+    post_body['multi_card_name'] = ""
+    post_body['num_of_item'] = 1
+    post_body['product_name'] = "Donation"
+    post_body['product_category'] = "General"
+    post_body['product_profile'] = "general"
+
+
+    response = sslcz.createSession(post_body) 
+    print(response)
+    
+    if response.get("status") == 'SUCCESS' :
+         return Response({"payment_url":response['GatewayPageURL']})
+    
+    return Response({"error" : "Payment initiation failed"},status=status.HTTP_400_BAD_REQUEST)
+
+   
+
