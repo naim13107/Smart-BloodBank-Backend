@@ -15,6 +15,7 @@ from sslcommerz_lib import SSLCOMMERZ
 from donors.models import DonationTransaction 
 from django.shortcuts import redirect
 from django.conf import settings as main_settings
+from django.http import HttpResponseRedirect
 
 
 class BloodRequestViewSet(viewsets.ModelViewSet):
@@ -182,10 +183,10 @@ def initiate_payment(request):
     post_body = {}
     post_body['total_amount'] = float(amount)
     post_body['currency'] = "BDT"
-    post_body['tran_id'] = str(transaction.tran_id) 
-    post_body['success_url'] = f"{main_settings.BACKEND_URL}/api/v1/payment/success"
-    post_body['fail_url'] = f"{main_settings.BACKEND_URL}/api/v1/payment/fail"
-    post_body['cancel_url'] = f"{main_settings.BACKEND_URL}/api/v1/payment/cancel"
+    post_body['tran_id'] = f"don_{transaction.id}" 
+    post_body['success_url'] = f"{main_settings.BACKEND_URL}/api/v1/payment/success/"
+    post_body['fail_url'] = f"{main_settings.BACKEND_URL}/api/v1/payment/fail/"
+    post_body['cancel_url'] = f"{main_settings.BACKEND_URL}/api/v1/payment/cancel/"
     post_body['emi_option'] = 0
     post_body['cus_name'] = f"{user.first_name} {user.last_name}".strip() or "Donor"
     post_body['cus_email'] = user.email 
@@ -195,8 +196,8 @@ def initiate_payment(request):
     post_body['cus_country'] = "Bangladesh"
     post_body['shipping_method'] = "NO"
     post_body['num_of_item'] = 1
-    post_body['product_name'] = "Donation"
-    post_body['product_category'] = "General"
+    post_body['product_name'] = "Blood Donation"
+    post_body['product_category'] = "Donation"
     post_body['product_profile'] = "general"
 
     response = sslcz.createSession(post_body)
@@ -230,40 +231,50 @@ def payment_history(request):
     return Response(data)
 
 
-
-
-
-
-@api_view(['POST'])
+@api_view(['GET','POST'])
 def payment_success(request):
-    tran_id = request.data.get('tran_id')
-    
-    try:
-        transaction = DonationTransaction.objects.get(tran_id=tran_id)
-        transaction.status = 'SUCCESS'
-        transaction.save()
-    except DonationTransaction.DoesNotExist:
-        print(f"Transaction {tran_id} not found")
-    
-    return redirect(f"{main_settings.FRONTEND_URL}/dashboard/payment/success")
 
+    print("Inside success")
 
-@api_view(['POST'])
+    tran_id = request.POST.get("tran_id") or request.GET.get("tran_id")
+
+    print("TRAN_ID:", tran_id)
+
+    if not tran_id:
+        return HttpResponseRedirect(
+            f"{main_settings.FRONTEND_URL}/dashboard/payment/success/"
+        )
+
+    donation_id = tran_id.split('_')[1]
+
+    transaction = DonationTransaction.objects.get(id=donation_id)
+    transaction.status = "SUCCESS"
+    transaction.save()
+
+    return HttpResponseRedirect(
+        f"{main_settings.FRONTEND_URL}/dashboard/payment/success/"
+    )
+
+@api_view(['GET','POST'])
 def payment_fail(request):
-    tran_id = request.data.get('tran_id')
-    
-    try:
-        transaction = DonationTransaction.objects.get(tran_id=tran_id)
-        transaction.status = 'FAILED'
-        transaction.save()
-    except DonationTransaction.DoesNotExist:
-        pass
-        
-    return redirect(f"{main_settings.FRONTEND_URL}/dashboard/payment/fail")
+
+    tran_id = request.data.get("tran_id")
+    donation_id = tran_id.split('_')[1]
+
+    transaction = DonationTransaction.objects.get(id=donation_id)
+    transaction.status = "FAILED"
+    transaction.save()
+
+    return HttpResponseRedirect(
+        f"{main_settings.FRONTEND_URL}/dashboard/payment/fail/"
+    )
 
 
-@api_view(['POST'])
+
+@api_view(['GET','POST'])
 def payment_cancel(request):
-    return redirect(f"{main_settings.FRONTEND_URL}/dashboard/payment/cancel")
-     
+
+    return HttpResponseRedirect(
+        f"{main_settings.FRONTEND_URL}/dashboard/payment/cancel/"
+    )
 
