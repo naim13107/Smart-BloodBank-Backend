@@ -213,52 +213,67 @@ class MyRequestsViewSet(viewsets.ModelViewSet):
 #             status=status.HTTP_500_INTERNAL_SERVER_ERROR
 #         )
 
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from sslcommerz_lib import SSLCOMMERZ
-import uuid
+
 
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def initiate_payment(request):
     amount = request.data.get('amount')
+    user = request.user
+
+    if not amount:
+        return Response({"error": "Amount is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+    # 1. Create Transaction in your Database first
+    # This matches your model in donors/models.py
+    transaction = DonationTransaction.objects.create(
+        user=user,
+        amount=float(amount),
+        status='PENDING'
+    )
+
     settings = { 
         'store_id': 'bondh69a2b4734c5ba', 
         'store_pass': 'bondh69a2b4734c5ba@ssl', 
         'issandbox': True 
     }
-
     sslcz = SSLCOMMERZ(settings)
     
     post_body = {}
-    post_body['total_amount'] = amount
+    post_body['total_amount'] = float(amount)
     post_body['currency'] = "BDT"
-    post_body['tran_id'] = str(uuid.uuid4())
-    post_body['success_url'] = "http://localhost:5173/dashboard/payment/success/"
-    post_body['fail_url'] = "http://localhost:5173/dashboard/payment/fail/"
+    # 2. Use the tran_id from the database record
+    post_body['tran_id'] = str(transaction.tran_id) 
+    
+    # These should point to your BACKEND views to update the database status
+    post_body['success_url'] = "http://localhost:8000/api/v1/payment/success/"
+    post_body['fail_url'] = "http://localhost:8000/api/v1/payment/fail/"
     post_body['cancel_url'] = "http://localhost:5173/dashboard/payment/transactions/"
+    
     post_body['emi_option'] = 0
-    post_body['cus_name'] = "test"
-    post_body['cus_email'] = "test@test.com"
-    post_body['cus_phone'] = "01700000000"
-    post_body['cus_add1'] = "customer address"
+    post_body['cus_name'] = f"{user.first_name} {user.last_name}".strip() or "Donor"
+    post_body['cus_email'] = user.email 
+    # Handle cases where phone/address might be empty
+    post_body['cus_phone'] = getattr(user, 'phone_number', '01700000000') or '01700000000'
+    post_body['cus_add1'] = getattr(user, 'address', 'Dhaka') or 'Dhaka'
     post_body['cus_city'] = "Dhaka"
     post_body['cus_country'] = "Bangladesh"
     post_body['shipping_method'] = "NO"
-    post_body['multi_card_name'] = ""
     post_body['num_of_item'] = 1
-    post_body['product_name'] = "Test"
-    post_body['product_category'] = "Test Category"
+    post_body['product_name'] = "Donation"
+    post_body['product_category'] = "General"
     post_body['product_profile'] = "general"
 
     response = sslcz.createSession(post_body)
-    print(response)
 
-    # We must check if 'status' is 'SUCCESS' before accessing GatewayPageURL
     if response and response.get('status') == 'SUCCESS':
-        return Response(response['GatewayPageURL'])
+        # 3. MUST return 'payment_url' to match usePayment.js
+        return Response({'payment_url': response['GatewayPageURL']})
     
-    # If it fails, return the error message so you aren't stuck with a 500 error
-    return Response({"error": "Failed to create session", "details": response}, status=400)
+    return Response({
+        "error": "Failed to create session", 
+        "details": response
+    }, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['GET'])
