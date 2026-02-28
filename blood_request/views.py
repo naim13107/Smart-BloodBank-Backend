@@ -246,8 +246,8 @@ def initiate_payment(request):
     post_body['tran_id'] = str(transaction.tran_id) 
     
     # These should point to your BACKEND views to update the database status
-    post_body['success_url'] = "http://localhost:5173/api/v1/payment/success/"
-    post_body['fail_url'] = "http://localhost:5173/api/v1/payment/fail/"
+    post_body['success_url'] = "http://localhost:5173/dashboard/payment/success/"
+    post_body['fail_url'] = "http://localhost:5173/dashboard/payment/fail/"
     post_body['cancel_url'] = "http://localhost:5173/dashboard/payment/transactions/"
     
     post_body['emi_option'] = 0
