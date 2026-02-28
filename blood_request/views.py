@@ -1,7 +1,7 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly,AllowAny
 from .models import BloodRequest
 from .serializers import BloodRequestSerializer
 from .permissions import IsRecipientOrAdmin
@@ -152,68 +152,66 @@ class MyRequestsViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(recipient=self.request.user)
 
-
-
-
-
-
-
-
-
+import uuid
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
 def initiate_payment(request):
-    user = request.user
-    amount = request.data.get("amount")
-    
-    # 1. Save the pending transaction to the database
-    transaction = DonationTransaction.objects.create(
-        user=user,
-        amount=amount,
-        status='PENDING'
-    )
-    
-    # SSLCommerz Configuration
-    settings = { 
-        'store_id': 'bondh69a2122655891', 
-        'store_pass': 'bondh69a2122655891@ssl',
-        'issandbox': True 
-    }
-    sslcz = SSLCOMMERZ(settings)
-    
-    post_body = {}
-    post_body['total_amount'] = str(amount)
-    post_body['currency'] = "BDT"
-    post_body['tran_id'] = str(transaction.tran_id)
-    post_body['success_url'] = "http://localhost:8000/api/payment/success/"
-    post_body['fail_url'] = "http://localhost:8000/api/payment/fail/"
-    post_body['cancel_url'] = "http://localhost:5173/dashboard/payment/transactions/?status=cancelled"
-    post_body['emi_option'] = 0
-    post_body['cus_name'] = f"{user.first_name} {user.last_name}".strip() or "Anonymous Donor"
-    post_body['cus_email'] = user.email or "test@example.com"
-    post_body['cus_phone'] = user.phone_number or "01700000000"
-    post_body['cus_add1'] = user.address or "Dhaka"
-    post_body['cus_city'] = "Dhaka"
-    post_body['cus_country'] = "Bangladesh"
-    post_body['shipping_method'] = "NO"
-    post_body['multi_card_name'] = ""
-    post_body['num_of_item'] = 1
-    post_body['product_name'] = "Donation"
-    post_body['product_category'] = "General"
-    post_body['product_profile'] = "general"
+    try:
+        settings = {
+            'store_id': 'bondh69a2b4734c5ba',       # Use sandbox test credentials
+            'store_pass': 'bondh69a2b4734c5ba@ssl',      # Use sandbox test credentials
+            'issandbox': True
+        }
+        sslcz = SSLCOMMERZ(settings)
 
-    response = sslcz.createSession(post_body) 
-    
-    if response.get("status") == 'SUCCESS':
-         return Response({"payment_url": response['GatewayPageURL']})
-    
-    error_reason = response.get("failedreason", "Unknown SSLCommerz Error")
-    return Response(
-         {"error": f"SSLCommerz Error: {error_reason}"}, 
-        status=status.HTTP_400_BAD_REQUEST
-    )
+        post_body = {
+            'total_amount': 100.26,
+            'currency': "BDT",
+            'tran_id': str(uuid.uuid4()),
+            'success_url': "http://127.0.0.1:8000/api/v1/payment/success/",
+            'fail_url': "http://127.0.0.1:8000/api/v1/payment/fail/",
+            'cancel_url': "http://127.0.0.1:8000/api/v1/payment/cancel/",
+            'emi_option': 0,
+            'cus_name': "test",
+            'cus_email': "test@test.com",
+            'cus_phone': "01700000000",
+            'cus_add1': "customer address",
+            'cus_city': "Dhaka",
+            'cus_country': "Bangladesh",
+            'shipping_method': "NO",
+            'multi_card_name': "",
+            'num_of_item': 1,
+            'product_name': "Test",
+            'product_category': "Test Category",
+            'product_profile': "general",
+        }
 
+        response = sslcz.createSession(post_body)
+        print("SSLCOMMERZ Response:", response)
+
+        if response is None:
+            return Response(
+                {"error": "SSLCommerz returned no response. Check your store credentials."},
+                status=status.HTTP_502_BAD_GATEWAY
+            )
+
+        if response.get('status') == 'SUCCESS':
+            return Response({
+                'payment_url': response['GatewayPageURL'],
+                'status': 'success'
+            })
+
+        return Response({
+            'error': 'Payment session failed',
+            'details': response
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    except Exception as e:
+        print("ERROR:", str(e))
+        return Response(
+            {"error": str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
 
 @api_view(['GET'])
@@ -234,3 +232,4 @@ def payment_history(request):
         
    
     return Response(data)
+

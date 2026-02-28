@@ -51,7 +51,7 @@ INSTALLED_APPS = [
     'drf_yasg',
     'accounts',
     'donors',
-    'requests',
+    'blood_request',
     'api',
     'dashboard'
     

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from requests.models import BloodRequest
+from blood_request.models import BloodRequest
 # Register your models here.
 
 admin.site.register(BloodRequest)

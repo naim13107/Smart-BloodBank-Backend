@@ -1,9 +1,9 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from donors.views import DonorViewSet
-from requests.views import BloodRequestViewSet,MyRequestsViewSet
+from blood_request.views import BloodRequestViewSet,MyRequestsViewSet
 from dashboard.views import UserDashboardViewSet
-from requests.views import initiate_payment,payment_history
+from blood_request.views import initiate_payment,payment_history
 
 router = DefaultRouter()
 router.register('donors', DonorViewSet, basename='donors')

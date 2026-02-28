@@ -2,9 +2,9 @@ from rest_framework import viewsets, permissions, status
 from rest_framework.response import Response
 from django.utils import timezone
 from donors.models import DonorProfile
-from requests.models import BloodRequest
+from blood_request.models import BloodRequest
 from donors.serializers import DonorProfileSerializer
-from requests.serializers import BloodRequestSerializer
+from blood_request.serializers import BloodRequestSerializer
 
 class UserDashboardViewSet(viewsets.ViewSet):
     """
