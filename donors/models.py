@@ -38,7 +38,6 @@ class DonorProfile(models.Model):
 class DonationTransaction(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
-    # Automatically generate a unique UUID for the tran_id
     tran_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     status = models.CharField(max_length=20, default='PENDING') # PENDING, SUCCESS, FAILED
     created_at = models.DateTimeField(auto_now_add=True)

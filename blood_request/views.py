@@ -13,6 +13,7 @@ from api.pagination import DefaultPagination
 from rest_framework.decorators import api_view,permission_classes
 from sslcommerz_lib import SSLCOMMERZ 
 from donors.models import DonationTransaction 
+from django.shortcuts import redirect
 
 
 class BloodRequestViewSet(viewsets.ModelViewSet):
@@ -223,9 +224,7 @@ def initiate_payment(request):
 
     if not amount:
         return Response({"error": "Amount is required"}, status=status.HTTP_400_BAD_REQUEST)
-
-    # 1. Create Transaction in your Database first
-    # This matches your model in donors/models.py
+    
     transaction = DonationTransaction.objects.create(
         user=user,
         amount=float(amount),
@@ -242,18 +241,13 @@ def initiate_payment(request):
     post_body = {}
     post_body['total_amount'] = float(amount)
     post_body['currency'] = "BDT"
-    # 2. Use the tran_id from the database record
     post_body['tran_id'] = str(transaction.tran_id) 
-    
-    # These should point to your BACKEND views to update the database status
     post_body['success_url'] = "http://localhost:5173/dashboard/payment/success/"
     post_body['fail_url'] = "http://localhost:5173/dashboard/payment/fail/"
     post_body['cancel_url'] = "http://localhost:5173/dashboard/payment/transactions/"
-    
     post_body['emi_option'] = 0
     post_body['cus_name'] = f"{user.first_name} {user.last_name}".strip() or "Donor"
     post_body['cus_email'] = user.email 
-    # Handle cases where phone/address might be empty
     post_body['cus_phone'] = getattr(user, 'phone_number', '01700000000') or '01700000000'
     post_body['cus_add1'] = getattr(user, 'address', 'Dhaka') or 'Dhaka'
     post_body['cus_city'] = "Dhaka"
@@ -267,7 +261,6 @@ def initiate_payment(request):
     response = sslcz.createSession(post_body)
 
     if response and response.get('status') == 'SUCCESS':
-        # 3. MUST return 'payment_url' to match usePayment.js
         return Response({'payment_url': response['GatewayPageURL']})
     
     return Response({
@@ -294,4 +287,42 @@ def payment_history(request):
         
    
     return Response(data)
+
+
+
+
+
+
+@api_view(['POST'])
+def payment_success(request):
+    tran_id = request.data.get('tran_id')
+    
+    try:
+        transaction = DonationTransaction.objects.get(tran_id=tran_id)
+        transaction.status = 'SUCCESS'
+        transaction.save()
+    except DonationTransaction.DoesNotExist:
+        print(f"Transaction {tran_id} not found")
+
+    return redirect("http://localhost:5173/dashboard/payment/success/")
+
+
+@api_view(['POST'])
+def payment_fail(request):
+    tran_id = request.data.get('tran_id')
+    
+    try:
+        transaction = DonationTransaction.objects.get(tran_id=tran_id)
+        transaction.status = 'FAILED'
+        transaction.save()
+    except DonationTransaction.DoesNotExist:
+        pass
+        
+    return redirect("http://localhost:5173/dashboard/payment/fail/")
+
+
+@api_view(['POST'])
+def payment_cancel(request):
+    return redirect("http://localhost:5173/dashboard/payment/history/")
+     
 
