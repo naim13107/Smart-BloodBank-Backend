@@ -3,7 +3,7 @@ from rest_framework.routers import DefaultRouter
 from donors.views import DonorViewSet
 from requests.views import BloodRequestViewSet,MyRequestsViewSet
 from dashboard.views import UserDashboardViewSet
-from requests.views import initiate_payment
+from requests.views import initiate_payment,payment_history
 
 router = DefaultRouter()
 router.register('donors', DonorViewSet, basename='donors')
@@ -19,5 +19,6 @@ urlpatterns = [
   
     path('auth/', include('djoser.urls')),
     path('auth/', include('djoser.urls.jwt')),
-    path("payment/initiate/",initiate_payment,name='initiate-payment')
+    path("payment/initiate/",initiate_payment,name='initiate-payment'),
+    path('payment/history/',payment_history, name='payment_history'),
 ]

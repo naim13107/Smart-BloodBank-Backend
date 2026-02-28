@@ -10,8 +10,10 @@ from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
 from api.pagination import DefaultPagination
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view,permission_classes
 from sslcommerz_lib import SSLCOMMERZ 
+from donors.models import DonationTransaction 
+
 
 class BloodRequestViewSet(viewsets.ModelViewSet):
     serializer_class = BloodRequestSerializer
@@ -157,14 +159,7 @@ class MyRequestsViewSet(viewsets.ModelViewSet):
 
 
 
-from django.shortcuts import redirect
-from django.views.decorators.csrf import csrf_exempt
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated, AllowAny
-from rest_framework.response import Response
-from rest_framework import status
-from donors.models import DonationTransaction 
-from sslcommerz_lib import SSLCOMMERZ 
+
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -220,3 +215,22 @@ def initiate_payment(request):
     )
 
 
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def payment_history(request):
+    
+    transactions = DonationTransaction.objects.filter(user=request.user).order_by('-created_at')
+    
+    
+    data = []
+    for txn in transactions:
+        data.append({
+            "tran_id": str(txn.tran_id),
+            "amount": str(txn.amount),
+            "status": txn.status,
+            "created_at": txn.created_at
+        })
+        
+   
+    return Response(data)
