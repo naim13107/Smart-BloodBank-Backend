@@ -151,26 +151,54 @@ class MyRequestsViewSet(viewsets.ModelViewSet):
         serializer.save(recipient=self.request.user)
 
 
+
+
+
+
+
+
+from django.shortcuts import redirect
+from django.views.decorators.csrf import csrf_exempt
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.response import Response
+from rest_framework import status
+from donors.models import DonationTransaction 
+from sslcommerz_lib import SSLCOMMERZ 
+
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def initiate_payment(request):
     user = request.user
     amount = request.data.get("amount")
     
-
-    settings = { 'store_id': 'bondh69a2122655891', 'store_pass': 'bondh69a2122655891@ssl','issandbox': True }
+    # 1. Save the pending transaction to the database
+    transaction = DonationTransaction.objects.create(
+        user=user,
+        amount=amount,
+        status='PENDING'
+    )
+    
+    # SSLCommerz Configuration
+    settings = { 
+        'store_id': 'bondh69a2122655891', 
+        'store_pass': 'bondh69a2122655891@ssl',
+        'issandbox': True 
+    }
     sslcz = SSLCOMMERZ(settings)
+    
     post_body = {}
-    post_body['total_amount'] = amount
+    post_body['total_amount'] = str(amount)
     post_body['currency'] = "BDT"
-    post_body['tran_id'] = "12345"
-    post_body['success_url'] = "http://localhost:5173/dashboard/payment/success/"
-    post_body['fail_url'] = "http://localhost:5173/dashboard/payment/fail/"
-    post_body['cancel_url'] = "http://localhost:5173/dashboard/payment/transactions/"
+    post_body['tran_id'] = str(transaction.tran_id)
+    post_body['success_url'] = "http://localhost:8000/api/payment/success/"
+    post_body['fail_url'] = "http://localhost:8000/api/payment/fail/"
+    post_body['cancel_url'] = "http://localhost:5173/dashboard/payment/transactions/?status=cancelled"
     post_body['emi_option'] = 0
-    post_body['cus_name'] = f"{user.first_name} {user.last_name}"
-    post_body['cus_email'] = f"{user.email}"
-    post_body['cus_phone'] = f"{user.phone_number}"
-    post_body['cus_add1'] = f"{user.address}"
+    post_body['cus_name'] = f"{user.first_name} {user.last_name}".strip() or "Anonymous Donor"
+    post_body['cus_email'] = user.email or "test@example.com"
+    post_body['cus_phone'] = user.phone_number or "01700000000"
+    post_body['cus_add1'] = user.address or "Dhaka"
     post_body['cus_city'] = "Dhaka"
     post_body['cus_country'] = "Bangladesh"
     post_body['shipping_method'] = "NO"
@@ -180,14 +208,15 @@ def initiate_payment(request):
     post_body['product_category'] = "General"
     post_body['product_profile'] = "general"
 
-
     response = sslcz.createSession(post_body) 
-    print(response)
     
-    if response.get("status") == 'SUCCESS' :
-         return Response({"payment_url":response['GatewayPageURL']})
+    if response.get("status") == 'SUCCESS':
+         return Response({"payment_url": response['GatewayPageURL']})
     
-    return Response({"error" : "Payment initiation failed"},status=status.HTTP_400_BAD_REQUEST)
+    error_reason = response.get("failedreason", "Unknown SSLCommerz Error")
+    return Response(
+        {"error": f"SSLCommerz Error: {error_reason}"}, 
+        status=status.HTTP_400_BAD_REQUEST
+    )
 
-   
 

@@ -2,6 +2,7 @@ from django.db import models
 from django.conf import settings
 from django.utils import timezone
 from datetime import timedelta
+import uuid
 
 class DonorProfile(models.Model):
     BLOOD_GROUPS = [
@@ -31,3 +32,16 @@ class DonorProfile(models.Model):
             else:
                 self.is_available = False
         super().save(*args, **kwargs)
+
+
+
+class DonationTransaction(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    # Automatically generate a unique UUID for the tran_id
+    tran_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    status = models.CharField(max_length=20, default='PENDING') # PENDING, SUCCESS, FAILED
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.email} - {self.amount} - {self.status}"
